@@ -1,0 +1,24 @@
+# Files
+docker-compose.yml
+
+# Folders
+# Front
+/frontend/node_modules/
+/frontend/.vscode
+/frontend/images
+/frontend/.env
+
+# backend
+/backend/.env
+/backend/.venv
+/backend/**/__pycache__
+/backend/.vscode
+/backend/consultant-ai-backend.zip
+/.vscode
+/.idea
+/backend/conAI_env
+/conAI_env
+.DS_Store
+/backend/.DS_Store
+/backend/venv_conai/
+.idea/
