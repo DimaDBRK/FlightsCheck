@@ -123,21 +123,6 @@ def airport_codes_from_txt(file_name="text.txt"):
   return airports
 
   
-# Driver
-
-# airport codes
-airport_codes = airport_codes_from_txt()
-# for file "RS_Via-3.xml" => both directions
-flights_info_both  = parse_flights_info_from_file("RS_Via-3.xml")
-# for file "RS_ViaOW.xml" => only onward
-flights_info_onward = parse_flights_info_from_file("RS_ViaOW.xml")
-
-
-# find flights from to 
-filtered_flights = search_flight("DXB", "BKK", flights_info_onward)
-# print(filtered_flights)
-
-
 # analysis - the most expensive, cheapest, fastest, longest, and optimal flight options
 def expensive_flight(flights_list: List[Dict]) -> List[Dict]:
   """
@@ -243,9 +228,31 @@ def optimal_flight(flights_list: List[Dict]) -> List[Dict]:
    
   return flights[0]
 
+
+# Driver
+
+# airport codes
+airport_codes = airport_codes_from_txt()
+# for file "RS_Via-3.xml" => both directions
+flights_info_both  = parse_flights_info_from_file("RS_Via-3.xml")
+# for file "RS_ViaOW.xml" => only onward
+flights_info_onward = parse_flights_info_from_file("RS_ViaOW.xml")
+
+
+# find flights from to 
+filtered_flights = search_flight("DXB", "BKK", flights_info_both)
+print(filtered_flights)
+filtered_flights_onward = search_flight("DXB", "BKK", flights_info_onward)
+
+
 # print("expensive", expensive_flight(filtered_flights))
 # print("cheapest", cheapest_flight(filtered_flights))
 # print("fastest", fastest_flight(filtered_flights))
 # print("longest", longest_flight(filtered_flights))
 
 # print("optimal", optimal_flight(filtered_flights))
+
+# Find the differences (elements present in list1 but not in list2)
+differences = [item for item in filtered_flights if item not in filtered_flights_onward]
+
+# print("Differences:", differences)
