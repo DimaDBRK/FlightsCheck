@@ -107,18 +107,14 @@ def search_flight(source, destination, flight_info_list, direction = 'OnwardPric
 # convert txt airport code to list of dictionaries and store to file
 def airport_codes_from_txt(file_name="text.txt"):
   file_path = f'{dir_path}/data/{file_name}'
-  airports = []
+  airports = {}
 
   with open(file_path, 'r', encoding='utf-8') as file:
       for line in file:
           parts = line.strip().split('\t')
           if len(parts) == 3:
-              airport = {
-                  "code": parts[0],
-                  "name": parts[1],
-                  "country": parts[2]
-              }
-              airports.append(airport)
+              airports[parts[0]] = parts[1] + ", " + parts[0]
+            
 
   return airports
 
@@ -213,9 +209,6 @@ def optimal_flight(flights_list: List[Dict]) -> List[Dict]:
   # normalize cost and duration
   max_amount = float(max(flights_list, key=lambda flight: float(flight.get("TotalAmount", 0)))["TotalAmount"])
   max_duration = float(max(flights_list, key=lambda flight: float(flight.get("Duration", 0)))["Duration"])
-   
-  
-  
  
   # find optimal = target from the list of flights => sort based on optimization criteria
   flights = sorted(flights_list, key=lambda flight: (
@@ -225,25 +218,79 @@ def optimal_flight(flights_list: List[Dict]) -> List[Dict]:
     (0 if 5 <= datetime.strptime(flight["DepartureTimeStamp"], date_format).hour <= 10 else 1) * criteria_weights.get("Morning", 1)  # Morning departure check
     )
   )
-   
-  return flights[0]
+  
+  return [flights[0]]
 
+# determine the differences between the results of the two queries, including changes in routes and conditions
+def compare_flights_responses(list1, list2):
+   # Step 1 => convert each list into a dictionary using the key = Flight number
+  flights_dict1 = {flight["FlightNumber"]: flight for flight in list1}
+  flights_dict2 = {flight["FlightNumber"]: flight for flight in list2}
+  
+  # Step 3 => find added and removed flights. set() -  function creates a set object
+  added_flights = set(flights_dict2.keys()) - set(flights_dict1.keys())
+  removed_flights = set(flights_dict1.keys()) - set(flights_dict2.keys())
+  
+  # dictionary to hold the summary of differences
+  differences = {
+        'Added': [flights_dict2[key] for key in added_flights],
+        'Removed': [flights_dict1[key] for key in removed_flights],
+        'Changed': []
+    }
+  
+  # Step 4 => find changed flights
+  for key in set(flights_dict1.keys()) & set(flights_dict2.keys()):
+      flight1 = flights_dict1[key]
+      flight2 = flights_dict2[key]
+
+      # check for differences in conditions and pricing
+      if flight1 != flight2:
+          # loop to collect differences in route, fare basis, and pricing
+          differences_in_flight = {}
+          for field in ['Source', 'Destination', 'DepartureTimeStamp', 'ArrivalTimeStamp', 'Duration', 'TotalAmount']:
+              if flight1.get(field) != flight2.get(field):
+                  differences_in_flight[field] = {
+                      'List1': flight1.get(field),
+                      'List2': flight2.get(field)
+                  }
+          if differences_in_flight:
+              differences['Changed'].append({
+                  'FlightNumber': key,
+                  'Differences': differences_in_flight
+              })
+  return differences
+
+# create list of airport codes
+def get_airport_codes_names(flights_list):
+  # airport codes set of unique
+  airport_codes = airport_codes_from_txt()
+  
+  source = {flight["Source"]:airport_codes.get(flight["Source"], flight["Source"]) for flight in flights_list}
+  destination = {flight["Destination"]:airport_codes.get(flight["Destination"], flight["Destination"]) for flight in flights_list}
+  
+  res = {
+    "source": source,
+    "destination": destination
+  }
+  return res
 
 # Driver
 
-# airport codes
-airport_codes = airport_codes_from_txt()
 # for file "RS_Via-3.xml" => both directions
-flights_info_both  = parse_flights_info_from_file("RS_Via-3.xml")
+# flights_info_both  = parse_flights_info_from_file("RS_Via-3.xml")
+
 # for file "RS_ViaOW.xml" => only onward
-flights_info_onward = parse_flights_info_from_file("RS_ViaOW.xml")
+# flights_info_onward = parse_flights_info_from_file("RS_ViaOW.xml")
 
 
 # find flights from to 
-filtered_flights = search_flight("DXB", "BKK", flights_info_both)
-print(filtered_flights)
-filtered_flights_onward = search_flight("DXB", "BKK", flights_info_onward)
+# filtered_flights = search_flight("DXB", "BKK", flights_info_onward)
 
+
+# print(filtered_flights)
+# filtered_flights_onward = search_flight("DXB", "BKK", flights_info_onward)
+
+# print(get_airport_codes_names(flights_info_both))
 
 # print("expensive", expensive_flight(filtered_flights))
 # print("cheapest", cheapest_flight(filtered_flights))
@@ -253,6 +300,5 @@ filtered_flights_onward = search_flight("DXB", "BKK", flights_info_onward)
 # print("optimal", optimal_flight(filtered_flights))
 
 # Find the differences (elements present in list1 but not in list2)
-differences = [item for item in filtered_flights if item not in filtered_flights_onward]
-
+# differences = compare_flights_responses(filtered_flights, filtered_flights_onward)
 # print("Differences:", differences)
