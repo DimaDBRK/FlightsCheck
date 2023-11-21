@@ -12,6 +12,8 @@ from functions import cheapest_flight
 from functions import fastest_flight 
 from functions import longest_flight
 from functions import optimal_flight
+from functions import compare_flights_responses
+from functions import get_airport_codes_names
 
 app = Flask(__name__)
 CORS(app)  # ADD ALLOWED ORIGIN LIST LATER
@@ -97,6 +99,66 @@ def analysis():
     print(e)
     return jsonify({"msg": "An error occurred"}), 500
 
+
+
+@bp_flight.route("/comparison", methods=["GET"])
+def comparison():
+  print("flight/comparison")
+  # request => ?source=NYC&destination=LA
+  # Retrieve 'source' and 'destination' from the request's query parameters
+  try:
+    source = request.args.get('source')
+    destination = request.args.get('destination')
+  
+    if not source or not destination:
+      return jsonify({"msg": "Request problem. No source or destination"}), 500
+    
+    # for file "RS_Via-3.xml" => both directions
+    flights_info_both  = parse_flights_info_from_file("RS_Via-3.xml")
+    
+    # for file "RS_ViaOW.xml" => only onward
+    flights_info_onward = parse_flights_info_from_file("RS_ViaOW.xml")
+
+    if not flights_info_onward or not flights_info_both:
+       return jsonify({"msg": "Internal error. No xml file(s) found."}), 500
+    # parse_flights_info_from_file
+    flights_onward = search_flight(source, destination, flights_info_onward)
+    flights_both = search_flight(source, destination, flights_info_both)
+      
+    res = compare_flights_responses(flights_onward, flights_both)   
+          
+    return jsonify(res), 200
+  
+  except Exception as e:
+    print(e)
+    return jsonify({"msg": "An error occurred"}), 500
+
+
+
+@bp_flight.route("/airports", methods=["GET"])
+def airports():
+  print("flight/airports")
+  try:
+    
+    
+    # for file "RS_Via-3.xml" => both directions
+    # flights_info_both  = parse_flights_info_from_file("RS_Via-3.xml")
+    
+    # for file "RS_ViaOW.xml" => only onward
+    flights_info_onward = parse_flights_info_from_file("RS_ViaOW.xml")
+
+    if not flights_info_onward:
+       return jsonify({"msg": "Internal error. No xml file found."}), 500
+    
+    # parse_flights_info_from_file
+    res = get_airport_codes_names(flights_info_onward)
+
+          
+    return jsonify(res), 200
+  
+  except Exception as e:
+    print(e)
+    return jsonify({"msg": "An error occurred"}), 500
 
 app.register_blueprint(bp_flight)
      
